@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Odyssey Store</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+      background: #000;
+      color: white;
+      transition: background-color 0.5s, color 0.5s;
+    }
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(180deg, #111, #222);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      animation: fadeOut 1s ease 3s forwards;
+    }
+    #loader h1 {
+      font-size: 3rem;
+      color: #0f0;
+      animation: floatText 2s ease-in-out infinite alternate;
+      user-select: none;
+    }
+    .spinner {
+      margin-top: 20px;
+      width: 40px;
+      height: 40px;
+      border: 5px solid #0f0;
+      border-top: 5px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes floatText {
+      0% { transform: translateY(0); opacity: 0.7; }
+      100% { transform: translateY(-10px); opacity: 1; }
+    }
+    @keyframes spin {
+      0% { transform: rotate(0); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; visibility: hidden; }
+    }
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      background: inherit;
+      color: inherit;
+      transition: background-color 0.5s, color 0.5s;
+    }
+    #background-blur {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      filter: blur(4px);
+      opacity: 0.7;
+      z-index: 0;
+      transition: background-image 0.5s ease;
+    }
+    #particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    header {
+      z-index: 2;
+      padding: 20px 40px;
+      font-size: 2rem;
+      font-weight: bold;
+      color: inherit;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    #lang-toggle {
+      cursor: pointer;
+      background: transparent;
+      border: 2px solid currentColor;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 1rem;
+      color: inherit;
+      transition: background-color 0.3s, color 0.3s;
+      user-select: none;
+      margin-left: 10px;
+    }
+    #lang-toggle:hover {
+      background-color: currentColor;
+      color: black;
+      opacity: 0.8;
+    }
+    #search-icon {
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      fill: #0f0;
+      filter: drop-shadow(0 0 2px #0f0);
+      user-select: none;
+      transition: opacity 0.3s ease;
+    }
+    #search-icon:hover {
+      opacity: 0.8;
+    }
+    #search-container {
+      position: absolute;
+      right: 140px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      background: rgba(0, 255, 0, 0.1);
+      border-radius: 8px;
+      padding: 4px 8px;
+      max-width: 280px;
+      width: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: width 0.4s ease, opacity 0.4s ease;
+    }
+    #search-container.active {
+      width: 280px;
+      opacity: 1;
+    }
+    #search-input {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1.5px solid #0f0;
+      outline: none;
+      color: inherit;
+      background: transparent;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    #game-list-container {
+      position: relative;
+      z-index: 2;
+      padding: 20px 40px 0 40px;
+      overflow: hidden;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    #game-list {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding-bottom: 10px;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    #game-list::-webkit-scrollbar {
+      display: none;
+    }
+    .game-item {
+      flex: 0 0 140px;
+      height: 160px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      user-select: none;
+      position: relative;
+    }
+    .game-item img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      user-select: none;
+    }
+    .game-item.selected {
+      transform: scale(1.2);
+      background-color: rgba(0, 255, 0, 0.2);
+    }
+    #details {
+      z-index: 2;
+      margin-top: 20px;
+      padding: 20px 40px;
+      user-select: none;
+    }
+    #details h2 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    #details p {
+      color: #ccc;
+      font-size: 1.1rem;
+      line-height: 1.4;
+    }
+    #download-btn {
+      margin-top: 20px;
+      padding: 10px 30px;
+      border: none;
+      background: transparent;
+      color: #ffffff;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      user-select: none;
+    }
+    #download-btn:hover {
+      background: #0f0;
+      color: #000;
+    }
+    .arrow {
+      position: absolute;
+      top: calc(50% + 60px);
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      z-index: 3;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: fill 0.3s ease, opacity 0.3s ease;
+      opacity: 0.7;
+    }
+    .arrow:hover {
+      opacity: 1;
+    }
+    .arrow-left {
+      left: 0;
+    }
+    .arrow-right {
+      right: 0;
+    }
+    .arrow svg {
+      fill: #0f0;
+      width: 28px;
+      height: 28px;
+      filter: drop-shadow(0 0 2px #0f0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de carga -->
+  <div id="loader">
+    <h1>Odyssey Store</h1>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Interfaz principal -->
+  <div id="app">
+    <div id="background-blur"></div>
+    <canvas id="particles"></canvas>
+    <header>
+      <div id="store-title">Odyssey Store</div>
+      <div style="display:flex; align-items:center;">
+        <button id="lang-toggle" aria-label="Cambiar idioma">ES</button>
+        <!-- Icono lupa -->
+        <svg id="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="button" aria-label="Buscar juegos" tabindex="0">
+          <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM10 14a4 4 0 110-8 4 4 0 010 8z"/>
+        </svg>
+        <!-- Contenedor input oculto inicialmente -->
+        <div id="search-container" aria-hidden="true">
+          <input type="text" id="search-input" placeholder="Buscar juegos..." aria-label="Buscar juegos" />
+        </div>
+      </div>
+    </header>
+
+    <div id="game-list-container">
+      <div class="arrow arrow-left" id="scroll-left" title="Desplazar izquierda" aria-label="Desplazar lista juegos izquierda">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </div>
+
+      <div id="game-list" tabindex="0" role="listbox" aria-label="Lista de juegos"></div>
+
+      <div class="arrow arrow-right" id="scroll-right" title="Desplazar derecha" aria-label="Desplazar lista juegos derecha">
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+
+      <div id="details" aria-live="polite" aria-atomic="true">
+        <h2 id="game-title">Elige un juego</h2>
+        <p id="game-desc">Aquí aparecerá la descripción del juego.</p>
+        <p id="game-weight"></p>
+        <p id="game-controls"></p>
+        <button id="download-btn" style="display:none;">Descargar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const games = [
+      {
+         id: 0,
+         title: { es: "Minecraft", en: "Minecraft" },
+         desc: {
+           es: "Minecraft es un videojuego de mundo abierto donde los jugadores pueden explorar, construir, minar y sobrevivir en un mundo generado por bloques. Con modos creativo y supervivencia, permite desde crear impresionantes estructuras hasta enfrentarse a criaturas hostiles.",
+           en: "Minecraft is an open-world game where players explore, build, mine, and survive in a blocky generated world. With creative and survival modes, it allows everything from building amazing structures to fighting hostile creatures."
+         },
+         logo: "https://www.nicepng.com/png/full/206-2061494_minecraft-main-character-icon-minecraft-vector.png",
+         bg: "https://preview.redd.it/i-built-the-minecraft-launcher-wallpaper-v0-xcfhxl90hpf91.jpg?width=640&crop=smart&auto=webp&s=98c44ee61ccf1656d3955460c893018c11096f90",
+         link: "https://tlauncher.org/",
+         weight: { es: "25,4 MB", en: "25,4 MB" },
+         controls: { es: "Teclado y Mando", en: "Keyboard and Controller" }
+      },
+      {
+         id: 1,
+         title: { es: "Assassin's Creed Black Flag", en: "Assassin's Creed Black Flag" },
+         desc: {
+           es: "Assassin's Creed IV: Black Flag es un videojuego de acción y aventuras ambientado en la Edad de Oro de la piratería. Controlas a Edward Kenway, un audaz pirata y asesino que navega el Caribe.",
+           en: "Assassin's Creed IV: Black Flag is an action-adventure game set in the Golden Age of piracy. You control Edward Kenway, a daring pirate and assassin navigating the Caribbean."
+         },
+         logo: "https://image.api.playstation.com/gs2-sec/appkgo/prod/CUSA00009_00/2/i_bb56e3087ed420e514ddd26c731396aac8cd65aaa26a4d6247d013f417bfae55/i/icon0.png",
+         bg: "https://www.gamewallpapers.com/wallpapers_slechte_compressie/01wallpapers/wallpaper_assassins_creed_4_black_flag_02_1920x1080.jpg",
+         link: "https://gofile.io/d/gOLwyT",
+         weight: { es: "12,0 GB", en: "12,0 GB" },
+         controls: { es: "Teclado y Mando", en: "Keyboard and Controller" }
+      },
+      {
+         id: 2,
+         title: { es: "Cuphead", en: "Cuphead" },
+         desc: {
+           es: "Cuphead es un videojuego de acción y plataformas con estilo de dibujos animados de los años 30.",
+           en: "Cuphead is a run-and-gun platformer with 1930s cartoon style."
+         },
+         logo: "https://external-preview.redd.it/tXz4g4oiKCW5p0IwmVk0ct1faQmHddPywt-fZ3EpuL8.jpg?auto=webp&s=94f37c8ee8c67e2501704bf4fd9afe5055331ee7",
+         bg: "https://wallpapers.com/images/hd/cuphead-with-mugman-in-yellow-4t0naapmm10pwqx0.jpg",
+         link: "https://www.mediafire.com/file/n023i97wiob8jih",
+         weight: { es: "1,69 GB", en: "1,69 GB" },
+         controls: { es: "Teclado", en: "Keyboard" }
+      },
+      {
+         id: 3,
+         title: { es: "Grand Theft Auto V", en: "Grand Theft Auto V" },
+         desc: {
+           es: "Grand Theft Auto V (GTA 5) es un videojuego de acción y mundo abierto donde los jugadores controlan a tres criminales en Los Santos.",
+           en: "Grand Theft Auto V (GTA 5) is an open-world action game where players control three criminals in Los Santos."
+         },
+         logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcBqyo8p2JxKK6YGHdYYiFmeFy2FV4LHUpBA&s",
+         bg: "https://e0.pxfuel.com/wallpapers/939/737/desktop-wallpaper-gta-5-in-page-2-for-your-mobile-tablet-explore-gta-v-gta-5-for-gta-5-grand-theft-auto-5-gta-5-city.jpg",
+         link: "https://gofile.io/d/UTefPA",
+         weight: { es: "39,9 GB", en: "39,9 GB" },
+         controls: { es: "Teclado", en: "Keyboard and Controller" }
+      },
+      {
+         id: 4,
+         title: { es: "Dragon Ball Sparking Zero", en: "Dragon Ball Sparking Zero" },
+         desc: {
+           es: "Dragon Ball Sparking Zero es un juego de lucha 3D basado en el universo Dragon Ball, con combates intensos y gráficos impresionantes.",
+           en: "Dragon Ball Sparking Zero is a 3D fighting game based on the Dragon Ball universe, featuring intense battles and impressive graphics."
+         },
+         logo: "https://sm.ign.com/t/ign_latam/cover/d/dragon-bal/dragon-ball-sparking-zero_4mc6.600.jpg",
+         bg: "https://cdn.dlcompare.com/others_jpg/upload/news/image/dragon-ball-sparking-zero-lanzam-0db47247-image-43644722b.jpg.webp",
+         link: "https://gofile.io/d/vXn1Yr",
+         weight: { es: "29,2 GB", en: "29,2 GB" },
+         controls: { es: "Mando", en: "Keyboard and Controller" }
+      },
+      {
+         id: 5,
+         title: { es: "Cyberpunk 2077", en: "Cyberpunk 2077" },
+         desc: {
+           es: "Cyberpunk 2077 es un RPG de mundo abierto ambientado en la futurista Night City, con una historia profunda y múltiples opciones.",
+           en: "Cyberpunk 2077 is an open-world RPG set in the futuristic Night City, featuring a deep story and multiple choices."
+         },
+         logo: "https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg",
+         bg: "https://images.steamusercontent.com/ugc/2009220277615502360/F7ADDE2C43533556CAA49747C37C13B0EEDD4330/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false",
+         link: "https://gofile.io/d/qUxDdZ",
+         weight: { es: "71,5 GB", en: "71.5 GB" },
+         controls: { es: "Teclado y Mando", en: "Keyboard and Controller" }
+      },
+      {
+         id: 6,
+         title: { es: "Need for Speed Shift", en: "Need for Speed Shift" },
+         desc: {
+           es: "Need for Speed Shift es un juego de carreras con un enfoque en el realismo y la experiencia de conducción.",
+           en: "Need for Speed Shift is a racing game focusing on realism and driving experience."
+         },
+         logo: "https://assets-prd.ignimgs.com/2022/08/31/nfsshiftmobile-1661949066455.jpg",
+         bg: "https://www.gamewallpapers.com/wallpapers_slechte_compressie/01wallpapers/wallpaper_need_for_speed_shift_2_unleashed_01_1920x1080.jpg",
+         link: "https://gofile.io/d/H9JJmU",
+         weight: { es: "3,7 GB", en: "3,7 GB" },
+         controls: { es: "Mando", en: "Controller" }
+      },
+      {
+        id: 7,
+        title: { es: "The Last of Us", en: "The Last of Us" },
+        desc: {
+          es: "The Last of Us es un juego de acción y aventura postapocalíptico que sigue a Joel y Ellie en un mundo devastado por una infección.",
+          en: "The Last of Us is a post-apocalyptic action-adventure game following Joel and Ellie in a devastated world."
+        },
+        logo: "https://assets-prd.ignimgs.com/2021/12/07/tlou-1638842419547.jpg?width=300&crop=1%3A1%2Csmart",
+        bg: "https://p4.wallpaperbetter.com/wallpaper/626/918/384/the-last-of-us-remastered-ps4-pro-4k-wallpaper-preview.jpg",
+        link: "https://gofile.io/d/lEHzIG",
+        weight: { es: "23,4 GB", en: "23.4 GB" },
+        controls: { es: "Teclado y Mando", en: "Keyboard and Controller" }
+      },
+      {
+        id: 8,
+        title: { es: "Tomb Raider (2013)", en: "Tomb Raider (2013)" },
+        desc: {
+          es: "Tomb Raider (2013) es un reboot de la saga donde Lara Croft lucha por sobrevivir en una isla misteriosa.",
+          en: "Tomb Raider (2013) is a reboot where Lara Croft fights to survive on a mysterious island."
+        },
+        logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0Z1iroJK6rTmdeK5WRsCRGogZh5MgruE1XA&s",
+        bg: "https://p4.wallpaperbetter.com/wallpaper/580/181/110/anime-video-games-lara-croft-tomb-raider-wallpaper-preview.jpg",
+        link: "https://www.mediafire.com/file/mpfmgh80c6jxrdn",
+        weight: { es: "17,2 GB", en: "17.2 GB" },
+        controls: { es: "Teclado y Mando", en: "Keyboard and Controller" }
+
+      }
+    ];
+
+    const loader = document.getElementById('loader');
+    const app = document.getElementById('app');
+    const bgBlur = document.getElementById('background-blur');
+    const gameList = document.getElementById('game-list');
+    const detailsTitle = document.getElementById('game-title');
+    const detailsDesc = document.getElementById('game-desc');
+    const detailsWeight = document.getElementById('game-weight');
+    const detailsControls = document.getElementById('game-controls');
+    const downloadBtn = document.getElementById('download-btn');
+    const searchInput = document.getElementById('search-input');
+    const langToggle = document.getElementById('lang-toggle');
+    const scrollLeftBtn = document.getElementById('scroll-left');
+    const scrollRightBtn = document.getElementById('scroll-right');
+    const searchIcon = document.getElementById('search-icon');
+    const searchContainer = document.getElementById('search-container');
+
+    let currentLang = 'es';
+    let selectedGameIndex = 0;
+    let filteredGames = [];
+
+    function renderGameList() {
+      gameList.innerHTML = '';
+      const filter = searchInput.value.trim().toLowerCase();
+      filteredGames = games.filter(g =>
+        g.title.es.toLowerCase().includes(filter) || g.title.en.toLowerCase().includes(filter)
+      );
+
+      filteredGames.forEach((game, idx) => {
+        const item = document.createElement('div');
+        item.className = 'game-item';
+        item.setAttribute('role', 'option');
+        item.setAttribute('tabindex', '0');
+        item.setAttribute('aria-selected', 'false');
+        const img = document.createElement('img');
+        img.src = game.logo;
+        img.alt = game.title[currentLang];
+        item.appendChild(img);
+
+        item.addEventListener('click', () => {
+          selectedGameIndex = games.indexOf(game);
+          selectGame(selectedGameIndex);
+          scrollToSelected();
+        });
+        item.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectedGameIndex = games.indexOf(game);
+            selectGame(selectedGameIndex);
+            scrollToSelected();
+          }
+        });
+
+        gameList.appendChild(item);
+      });
+    }
+
+    function selectGame(index) {
+      selectedGameIndex = index;
+      const items = gameList.querySelectorAll('.game-item');
+      items.forEach((item, i) => {
+        const originalIndex = games.indexOf(filteredGames[i]);
+        const selected = originalIndex === index;
+        item.classList.toggle('selected', selected);
+        item.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
+
+      const game = games[index];
+      if (!game) {
+        detailsTitle.textContent = currentLang === 'es' ? 'Elige un juego' : 'Choose a game';
+        detailsDesc.textContent = currentLang === 'es' ? 'Aquí aparecerá la descripción del juego.' : 'Game description will appear here.';
+        detailsWeight.textContent = '';
+        detailsControls.textContent = '';
+        downloadBtn.style.display = 'none';
+        bgBlur.style.backgroundImage = '';
+        return;
+      }
+      detailsTitle.textContent = game.title[currentLang];
+      detailsDesc.textContent = game.desc[currentLang];
+      detailsWeight.textContent = (currentLang === 'es' ? 'Peso: ' : 'Size: ') + game.weight[currentLang];
+      detailsControls.textContent = (currentLang === 'es' ? 'Controles: ' : 'Controls: ') + game.controls[currentLang];
+      downloadBtn.textContent = currentLang === 'es' ? 'Descargar' : 'Download';
+      downloadBtn.style.display = 'inline-block';
+      bgBlur.style.backgroundImage = `url('${game.bg}')`;
+      downloadBtn.onclick = () => {
+        window.open(game.link, '_blank');
+      };
+    }
+
+    function scrollToSelected() {
+      const items = gameList.querySelectorAll('.game-item');
+      const selectedItem = items[filteredGames.findIndex(g => games.indexOf(g) === selectedGameIndex)];
+      if (selectedItem) {
+        const listRect = gameList.getBoundingClientRect();
+        const itemRect = selectedItem.getBoundingClientRect();
+        const offset = itemRect.left - listRect.left - (listRect.width / 2) + (itemRect.width / 2);
+        gameList.scrollBy({ left: offset, behavior: 'smooth' });
+      }
+    }
+
+    // Navegación con teclado global
+    window.addEventListener('keydown', (e) => {
+      if (document.activeElement === searchInput) return;
+
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const currentFilteredIndex = filteredGames.findIndex(g => games.indexOf(g) === selectedGameIndex);
+        if (currentFilteredIndex < filteredGames.length - 1) {
+          const nextIndex = games.indexOf(filteredGames[currentFilteredIndex + 1]);
+          selectGame(nextIndex);
+          scrollToSelected();
+        }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const currentFilteredIndex = filteredGames.findIndex(g => games.indexOf(g) === selectedGameIndex);
+        if (currentFilteredIndex > 0) {
+          const prevIndex = games.indexOf(filteredGames[currentFilteredIndex - 1]);
+          selectGame(prevIndex);
+          scrollToSelected();
+        }
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        if (selectedGameIndex >= 0 && games[selectedGameIndex]) {
+          e.preventDefault();
+          window.open(games[selectedGameIndex].link, '_blank');
+        }
+      }
+    });
+
+    // Botones de flechas para scroll lateral con animación suave y cambio de selección
+    scrollLeftBtn.addEventListener('click', () => {
+      const currentFilteredIndex = filteredGames.findIndex(g => games.indexOf(g) === selectedGameIndex);
+      if (currentFilteredIndex > 0) {
+        const prevIndex = games.indexOf(filteredGames[currentFilteredIndex - 1]);
+        selectGame(prevIndex);
+        scrollToSelected();
+      } else {
+        // Si no hay más a la izquierda, mueve scroll un poco para que se note
+        gameList.scrollBy({ left: -150, behavior: 'smooth' });
+      }
+    });
+    scrollRightBtn.addEventListener('click', () => {
+      const currentFilteredIndex = filteredGames.findIndex(g => games.indexOf(g) === selectedGameIndex);
+      if (currentFilteredIndex < filteredGames.length - 1) {
+        const nextIndex = games.indexOf(filteredGames[currentFilteredIndex + 1]);
+        selectGame(nextIndex);
+        scrollToSelected();
+      } else {
+        gameList.scrollBy({ left: 150, behavior: 'smooth' });
+      }
+    });
+
+    // Cambiar idioma
+    langToggle.addEventListener('click', () => {
+      currentLang = currentLang === 'es' ? 'en' : 'es';
+      langToggle.textContent = currentLang.toUpperCase();
+      renderGameList();
+      selectGame(selectedGameIndex);
+    });
+
+    // Mostrar input al hacer clic en lupa
+    searchIcon.addEventListener('click', () => {
+      if (searchContainer.classList.contains('active')) {
+        // Si ya está activo, se oculta
+        searchContainer.classList.remove('active');
+        searchContainer.setAttribute('aria-hidden', 'true');
+        searchInput.value = '';
+        renderGameList();
+        if (filteredGames.length > 0) {
+          selectedGameIndex = games.indexOf(filteredGames[0]);
+          selectGame(selectedGameIndex);
+          scrollToSelected();
+        }
+      } else {
+        searchContainer.classList.add('active');
+        searchContainer.setAttribute('aria-hidden', 'false');
+        searchInput.focus();
+      }
+    });
+
+    // También abrir input con Enter o espacio cuando está en lupa
+    searchIcon.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        searchIcon.click();
+      }
+    });
+
+    // Filtrar juegos al escribir en input
+    searchInput.addEventListener('input', () => {
+      renderGameList();
+      if (filteredGames.length > 0) {
+        selectedGameIndex = games.indexOf(filteredGames[0]);
+        selectGame(selectedGameIndex);
+        scrollToSelected();
+      } else {
+        detailsTitle.textContent = currentLang === 'es' ? 'No se encontraron juegos' : 'No games found';
+        detailsDesc.textContent = '';
+        detailsWeight.textContent = '';
+        detailsControls.textContent = '';
+        downloadBtn.style.display = 'none';
+        bgBlur.style.backgroundImage = '';
+        gameList.innerHTML = '';
+      }
+    });
+
+    // Inicializar app después de loader
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loader.style.display = 'none';
+        app.style.display = 'flex';
+        renderGameList();
+        selectGame(selectedGameIndex);
+        scrollToSelected();
+      }, 3500);
+    });
+  </script>
+
+</body>
+</html>
